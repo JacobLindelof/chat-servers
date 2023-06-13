@@ -6,8 +6,8 @@ using System.Text.RegularExpressions;
 
 public class WebSocketMessage
 {
-  public string? Type { get; set; }
-  public string? Value { get; set; }
+  public string? action { get; set; }
+  public string? data { get; set; }
 }
 class Server
 {
@@ -16,7 +16,7 @@ class Server
   public static void Main()
   {
     string ip = "127.0.0.1";
-    int port = 80;
+    int port = 8080;
     var server = new TcpListener(IPAddress.Parse(ip), port);
 
     server.Start();
@@ -100,10 +100,20 @@ class Server
 
           string message = DecodeMessage(bytes, offset, msglen, mask);
           WebSocketMessage? msg = JsonSerializer.Deserialize<WebSocketMessage>(message);
-          Console.WriteLine(msg?.Type);
-          if (msg?.Type == "message")
+          if (msg?.action == "message" && msg?.data != null)
           {
-            Console.WriteLine(msg.Value);
+            clients.ForEach(c =>
+            {
+              if (c != client)
+              {
+                string message = "{\"action\":\"message\",\"data\":\"" + msg.data + "\"}";
+                byte[] response = new byte[message.Length + 2];
+                response[0] = 0b10000001;
+                response[1] = (byte)message.Length;
+                Encoding.UTF8.GetBytes(message).CopyTo(response, 2);
+                c.GetStream().Write(response, 0, response.Length);
+              }
+            });
           }
         }
         catch (Exception e)

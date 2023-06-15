@@ -56,10 +56,6 @@ func generateWebSocketMessage(action string, data string) []byte {
 	return bytes
 }
 
-func sendWebSocketMessage(conn net.Conn, action string, data string) {
-	conn.Write(generateWebSocketMessage(action, data))
-}
-
 func broadcastWebSocketMessage(action string, data string, originatingClient ChatClient) {
 	message := generateWebSocketMessage(action, data)
 	for _, chatClient := range chatClients {

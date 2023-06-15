@@ -1,5 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WebSocket Chatroom</title>
+  </head>
   <style>
     body {
       --primary-color: #1a1a1a;
@@ -43,17 +47,14 @@
     .message-container {
       display: flex;
       flex-direction: column-reverse;
-      height: 300px;
+      height: 0px;
       overflow-y: auto;
       flex-grow: 1;
       margin-bottom: 1rem;
       border: 1px solid var(--tertiary-color);
-      border-radius: 10px;
-      padding: 1rem;
     }
     .message-container p {
       margin: 0;
-      border-radius: 5px;
       padding: 0.5rem;
     }
     .message-container p:nth-child(odd) {
@@ -68,6 +69,7 @@
       flex-direction: column-reverse;
       overflow-y: auto;
       flex-grow: 1;
+      height: 0px;
       margin-bottom: 1rem;
       border: 1px solid var(--tertiary-color);
       border-radius: 10px;
@@ -90,6 +92,14 @@
       color: white;
       border: none;
     }
+    .username-input {
+      resize: none;
+      border-radius: 5px;
+      padding: .5rem;
+      background-color: var(--tertiary-color);
+      color: white;
+      border: none;
+    }
     .send-button {
       border-radius: 5px;
       padding: 1rem;
@@ -101,12 +111,25 @@
     .send-button:hover {
       background-color: var(--primary-color);
     }
+    .toolbar {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .text-small {
+      font-size: 0.75rem;
+    }
   </style>
   <body>
     <h2 class="text-center">WebSocket Chatroom</h2>
     <div class="container">
       <main class="chatroom">
-        <h2>Chat</h2>
+        <div class="toolbar">
+          <h2>Chat</h2>
+          <input type="text" id="username" placeholder="Enter your name" class="username-input" onblur="setUsername()" />
+        </div>
         <div class="message-container"></div>
         <form onsubmit="onClickButton" class="send-container">
           <input class="message-input" cols="60" rows="3"></textarea>
@@ -140,7 +163,13 @@
     websocket.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.action === "message") {
-        writeToMessageContainer(data.data);
+        writeToMessageContainer(data.data, true);
+      }
+      else if (data.action === "join") {
+        writeToMessageContainer(data.data, true, true);
+      }
+      else if (data.action === "username") {
+        writeToMessageContainer(data.data, true, true);
       }
       writeToScreen(`RECEIVED: ${e.data}`);
     };
@@ -157,11 +186,19 @@
     function writeToScreen(message) {
       const debugOutput = document.querySelector(".output");
       debugOutput.insertAdjacentHTML("afterbegin", `<p>${message}</p>`);
+      scrollToBottom(debugOutput);
     }
 
-    function writeToMessageContainer(message) {
+    function writeToMessageContainer(message, isReceived = false, isUsername = false) {
       const messageContainer = document.querySelector(".message-container");
-      messageContainer.insertAdjacentHTML("afterbegin", `<p>${message}</p>`);
+      if (isUsername) {
+        messageContainer.insertAdjacentHTML("afterbegin", `<p class="text-center text-small">${message}</p>`);
+      } else if (isReceived) {
+        messageContainer.insertAdjacentHTML("afterbegin", `<p>${message}</p>`);
+      } else {
+        messageContainer.insertAdjacentHTML("afterbegin", `<p>Me: ${message}</p>`);
+      }
+      scrollToBottom(messageContainer);
     }
 
     function onClickButton(e) {
@@ -180,6 +217,22 @@
 
       textarea.value = "";
       textarea.focus();
+    }
+
+    function setUsername() {
+      const username = document.getElementById("username").value;
+      console.log(username)
+      if (!username) return;
+      sendChatMessage(
+        JSON.stringify({
+          action: "username",
+          data: username,
+        })
+      );
+    } 
+
+    function scrollToBottom(el) {
+      el.scrollTop = el.scrollHeight;
     }
   </script>
 </html>
